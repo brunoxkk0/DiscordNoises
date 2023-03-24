@@ -46,6 +46,12 @@ dependencies {
 
 }
 
+jar{
+    manifest {
+        attributes 'Main-Class': 'br.dev.brunoxkk0.discordnoises.DiscordNoisesApplication'
+    }
+}
+
 tasks.named('test') {
     useJUnitPlatform()
 }

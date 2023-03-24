@@ -1,5 +1,6 @@
 package br.dev.brunoxkk0.discordnoises.core;
 
+import br.dev.brunoxkk0.discordnoises.StaticData;
 import br.dev.brunoxkk0.discordnoises.audio.NoiseBotAudioManager;
 import br.dev.brunoxkk0.discordnoises.commands.CommandsListener;
 import lombok.Getter;
@@ -27,7 +28,7 @@ import static net.dv8tion.jda.api.utils.cache.CacheFlag.*;
 public class NoiseBot {
 
     public static final Logger logger = LoggerFactory.getLogger(NoiseBot.class);
-    public static final String version = "v1.0";
+    public static final String version = StaticData.VERSION;
 
     @Autowired
     private ConfigurationProvider configurationProvider;

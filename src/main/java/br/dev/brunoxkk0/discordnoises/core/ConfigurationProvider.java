@@ -9,5 +9,5 @@ import org.springframework.stereotype.Component;
 @ConfigurationProperties("noise-bot")
 public class ConfigurationProvider {
     private String botToken;
-
+    private String basePath = ".";
 }

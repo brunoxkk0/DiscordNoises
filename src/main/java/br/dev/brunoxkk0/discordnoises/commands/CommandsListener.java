@@ -13,6 +13,7 @@ import net.dv8tion.jda.api.interactions.components.selections.SelectOption;
 import net.dv8tion.jda.api.interactions.components.selections.StringSelectMenu;
 import org.springframework.stereotype.Component;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -89,11 +90,11 @@ public class CommandsListener extends ListenerAdapter {
             if(firstSelected.getValue().startsWith("NOISE_")){
                 NoisesTypes noisesType = NoisesTypes.valueOf(firstSelected.getValue().substring(6));
 
-                String path = noisesType.getFullPath();
+                String path = noiseBot.getConfigurationProvider().getBasePath() + noisesType.getFullPath();
 
-                if(path != null){
+                if(path != null && new File(path).isFile()){
                     StateHolder.update(event.getGuild(), noisesType);
-                    noiseBot.getNoiseBotAudioManager().loadAndPlay(event.getChannel().asTextChannel(), noisesType.getFullPath());
+                    noiseBot.getNoiseBotAudioManager().loadAndPlay(event.getChannel().asTextChannel(), path);
                     return;
                 }
             }
