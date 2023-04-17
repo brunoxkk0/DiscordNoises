@@ -22,6 +22,10 @@ public class StateHolder {
         return CURRENT_NOISE_TYPE.get(guildId);
     }
 
+    public static void wipe(Long guildId){
+        CURRENT_NOISE_TYPE.remove(guildId);
+    }
+
     public static NoisesTypes currentNoise(Guild guild){
         return currentNoise(guild.getIdLong());
     }

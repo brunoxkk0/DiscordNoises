@@ -68,7 +68,9 @@ public class CommandsListener extends ListenerAdapter {
                 NoiseTrackScheduler noiseTrackScheduler =  guildMusicManager.scheduler;
 
                 if(noiseTrackScheduler != null){
+                    event.getGuild().getAudioManager().closeAudioConnection();
                     noiseTrackScheduler.stop(event.getMessageChannel(), event.getGuild(), event.getMember());
+                    StateHolder.wipe(event.getGuild().getIdLong());
                 }
 
             }
