@@ -14,8 +14,10 @@ import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import lombok.Getter;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.entities.channel.concrete.VoiceChannel;
+import net.dv8tion.jda.api.entities.channel.middleman.AudioChannel;
 import net.dv8tion.jda.api.exceptions.ErrorResponseException;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.managers.AudioManager;
@@ -40,13 +42,22 @@ public class NoiseBotAudioManager extends ListenerAdapter {
     AudioPlayer audioPlayer;
 
 
-    public NoiseBotAudioManager(){
+    public NoiseBotAudioManager() {
         playerManager.registerSourceManager(new LocalAudioSourceManager());
 
         this.musicManagers = new HashMap<>();
 
         AudioSourceManagers.registerRemoteSources(playerManager);
         AudioSourceManagers.registerLocalSource(playerManager);
+    }
+
+    private static void connectToFirstVoiceChannel(AudioManager audioManager) {
+        if (!audioManager.isConnected()) {
+            for (VoiceChannel voiceChannel : audioManager.getGuild().getVoiceChannels()) {
+                audioManager.openAudioConnection(voiceChannel);
+                break;
+            }
+        }
     }
 
     private synchronized GuildMusicManager getGuildAudioPlayer(Guild guild) {
@@ -63,8 +74,7 @@ public class NoiseBotAudioManager extends ListenerAdapter {
         return musicManager;
     }
 
-
-    public void loadAndPlay(final TextChannel channel, final String trackUrl) {
+    public void loadAndPlay(final TextChannel channel, final String trackUrl, final Member source) {
 
         GuildMusicManager musicManager = getGuildAudioPlayer(channel.getGuild());
 
@@ -82,16 +92,18 @@ public class NoiseBotAudioManager extends ListenerAdapter {
                                 .setDescription("\uD83C\uDFA7 _Tocando agora..._ **" + StateHolder.currentNoise(channel.getGuild()).getFormattedName() + "**")
                                 .setFooter("Noise Bot " + NoiseBot.version)
                                 .build()
-                ).queue( message -> message.delete().queueAfter(10, TimeUnit.SECONDS, null, ErrorResponseException.ignore(ErrorResponse.MISSING_ACCESS)));
+                ).queue(message -> message.delete().queueAfter(10, TimeUnit.SECONDS, null, ErrorResponseException.ignore(ErrorResponse.MISSING_ACCESS)));
 
-                play(channel.getGuild(), musicManager, track);
+                play(channel.getGuild(), musicManager, track, source);
             }
 
             @Override
-            public void playlistLoaded(AudioPlaylist playlist) {}
+            public void playlistLoaded(AudioPlaylist playlist) {
+            }
 
             @Override
-            public void noMatches() {}
+            public void noMatches() {
+            }
 
             @Override
             public void loadFailed(FriendlyException exception) {
@@ -104,24 +116,24 @@ public class NoiseBotAudioManager extends ListenerAdapter {
                                 .setDescription("\uD83C\uDFA7 _Tentei tocar..._ **" + StateHolder.currentNoise(channel.getGuild()).getFormattedName() + "**")
                                 .setFooter("Noise Bot " + NoiseBot.version)
                                 .build()
-                ).queue( message -> message.delete().queueAfter(10, TimeUnit.SECONDS, null, ErrorResponseException.ignore(ErrorResponse.MISSING_ACCESS)));
+                ).queue(message ->
+                        message.delete().queueAfter(10, TimeUnit.SECONDS, null, ErrorResponseException.ignore(ErrorResponse.MISSING_ACCESS))
+                );
 
             }
         });
     }
 
-    private void play(Guild guild, GuildMusicManager musicManager, AudioTrack track) {
-        connectToFirstVoiceChannel(guild.getAudioManager());
-        musicManager.scheduler.queue(track);
-    }
+    private void play(Guild guild, GuildMusicManager musicManager, AudioTrack track, Member member) {
 
-    private static void connectToFirstVoiceChannel(AudioManager audioManager) {
-        if (!audioManager.isConnected()) {
-            for (VoiceChannel voiceChannel : audioManager.getGuild().getVoiceChannels()) {
-                audioManager.openAudioConnection(voiceChannel);
-                break;
-            }
+        if (member.getVoiceState().inAudioChannel()) {
+            AudioChannel audioChannel = member.getVoiceState().getChannel().asVoiceChannel();
+            guild.getAudioManager().openAudioConnection(audioChannel);
+        } else {
+            connectToFirstVoiceChannel(guild.getAudioManager());
         }
+
+        musicManager.scheduler.queue(track);
     }
 
 

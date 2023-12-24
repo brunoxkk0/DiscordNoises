@@ -8,6 +8,8 @@ import org.springframework.stereotype.Component;
 @Component
 @ConfigurationProperties("noise-bot")
 public class ConfigurationProvider {
+
     private String botToken;
     private String basePath = ".";
+
 }

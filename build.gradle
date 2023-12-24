@@ -46,7 +46,7 @@ dependencies {
 
 }
 
-jar{
+jar {
     manifest {
         attributes 'Main-Class': 'br.dev.brunoxkk0.discordnoises.DiscordNoisesApplication'
     }

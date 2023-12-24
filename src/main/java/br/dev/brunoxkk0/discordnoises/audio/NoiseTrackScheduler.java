@@ -51,11 +51,11 @@ public class NoiseTrackScheduler extends AudioEventAdapter {
 
     @Override
     public void onTrackEnd(AudioPlayer player, AudioTrack track, AudioTrackEndReason endReason) {
-        if(endReason.mayStartNext)
+        if (endReason.mayStartNext)
             player.playTrack(track.makeClone());
     }
 
-    public void stop(MessageChannel channel, Guild guild, Member member){
+    public void stop(MessageChannel channel, Guild guild, Member member) {
         player.stopTrack();
         channel.sendMessageEmbeds(
                 new EmbedBuilder()
@@ -67,7 +67,7 @@ public class NoiseTrackScheduler extends AudioEventAdapter {
                         .setAuthor("Solicitado por " + member.getUser().getName(), null, member.getEffectiveAvatarUrl())
                         .setFooter("Noise Bot " + NoiseBot.version)
                         .build()
-        ).queue( message -> message.delete().queueAfter(10, TimeUnit.SECONDS, null, ErrorResponseException.ignore(ErrorResponse.MISSING_ACCESS)));
+        ).queue(message -> message.delete().queueAfter(10, TimeUnit.SECONDS, null, ErrorResponseException.ignore(ErrorResponse.MISSING_ACCESS)));
 
     }
 }
