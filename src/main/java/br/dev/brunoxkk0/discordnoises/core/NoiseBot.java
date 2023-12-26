@@ -60,7 +60,7 @@ public class NoiseBot {
                 .setChunkingFilter(NONE)
                 .setMemberCachePolicy(ALL)
                 .setActivity(listening("alguns sons..."))
-                .addEventListeners(new CommandsListener(this))
+                .addEventListeners(new CommandsListener(this), noiseBotAudioManager)
                 .build();
     }
 

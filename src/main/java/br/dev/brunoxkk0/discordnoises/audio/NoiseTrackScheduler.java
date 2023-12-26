@@ -6,6 +6,7 @@ import com.sedmelluq.discord.lavaplayer.player.AudioPlayer;
 import com.sedmelluq.discord.lavaplayer.player.event.AudioEventAdapter;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrackEndReason;
+import lombok.Getter;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
@@ -20,6 +21,7 @@ import java.util.concurrent.TimeUnit;
 
 public class NoiseTrackScheduler extends AudioEventAdapter {
 
+    @Getter
     private final AudioPlayer player;
     private final BlockingQueue<AudioTrack> queue;
 

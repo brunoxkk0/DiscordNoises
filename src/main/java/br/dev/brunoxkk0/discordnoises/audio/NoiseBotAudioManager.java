@@ -13,20 +13,32 @@ import com.sedmelluq.discord.lavaplayer.track.AudioPlaylist;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import lombok.Getter;
 import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.entities.channel.concrete.VoiceChannel;
 import net.dv8tion.jda.api.entities.channel.middleman.AudioChannel;
+import net.dv8tion.jda.api.entities.channel.unions.AudioChannelUnion;
+import net.dv8tion.jda.api.events.guild.GuildReadyEvent;
+import net.dv8tion.jda.api.events.guild.voice.GuildVoiceUpdateEvent;
+import net.dv8tion.jda.api.events.session.ReadyEvent;
 import net.dv8tion.jda.api.exceptions.ErrorResponseException;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.managers.AudioManager;
 import net.dv8tion.jda.api.requests.ErrorResponse;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 
 import java.awt.*;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 @Component
@@ -41,14 +53,50 @@ public class NoiseBotAudioManager extends ListenerAdapter {
     @Getter
     AudioPlayer audioPlayer;
 
+    @Autowired
+    public ApplicationContext context;
+
+
+    private static final ConcurrentHashMap<Long, Long> QUIT_HANDLERS = new ConcurrentHashMap<>();
+    private static final ScheduledExecutorService executor = Executors.newScheduledThreadPool(1);
+
 
     public NoiseBotAudioManager() {
+
         playerManager.registerSourceManager(new LocalAudioSourceManager());
 
         this.musicManagers = new HashMap<>();
 
         AudioSourceManagers.registerRemoteSources(playerManager);
         AudioSourceManagers.registerLocalSource(playerManager);
+
+        executor.scheduleAtFixedRate(() -> {
+
+            ArrayList<Long> toRemove = new ArrayList<>();
+
+            if (!QUIT_HANDLERS.isEmpty()) {
+                for (Iterator<Map.Entry<Long, Long>> it = QUIT_HANDLERS.entrySet().stream().iterator(); it.hasNext(); ) {
+                    Map.Entry<Long, Long> entry = it.next();
+
+                    if (entry.getValue() <= System.currentTimeMillis()) {
+                        toRemove.add(entry.getKey());
+
+                        GuildMusicManager guildMusicManager = musicManagers.get(entry.getKey());
+                        guildMusicManager.player.stopTrack();
+
+                        JDA jda = context.getBean(JDA.class);
+                        jda.getGuildById(entry.getKey()).getAudioManager().closeAudioConnection();
+                        StateHolder.wipe(entry.getKey());
+                    }
+
+                }
+            }
+
+            for(Long key : toRemove)
+                QUIT_HANDLERS.remove(key);
+
+        }, 0, 5, TimeUnit.SECONDS);
+
     }
 
     private static void connectToFirstVoiceChannel(AudioManager audioManager) {
@@ -136,5 +184,40 @@ public class NoiseBotAudioManager extends ListenerAdapter {
         musicManager.scheduler.queue(track);
     }
 
+    @Override
+    public void onGuildVoiceUpdate(GuildVoiceUpdateEvent event) {
 
+        GuildMusicManager musicManager = musicManagers.get(event.getGuild().getIdLong());
+        AudioChannelUnion audioChannelUnion = event.getGuild().getAudioManager().getConnectedChannel();
+
+        if (musicManager == null || audioChannelUnion == null) {
+            return;
+        }
+
+        Long guild = event.getGuild().getIdLong();
+
+        AudioChannel leftChannel = event.getChannelLeft();
+        if (leftChannel != null && leftChannel.getMembers().size() == 1) {
+
+            if (leftChannel.getIdLong() != audioChannelUnion.asVoiceChannel().getIdLong()) {
+                return;
+            }
+
+            if (QUIT_HANDLERS.containsKey(guild))
+                return;
+
+            QUIT_HANDLERS.put(guild, System.currentTimeMillis() + 10000);
+            return;
+        }
+
+        AudioChannel joinChannel = event.getChannelJoined();
+        if (joinChannel != null && joinChannel.getMembers().size() >= 2) {
+
+            if (joinChannel.getIdLong() != audioChannelUnion.asVoiceChannel().getIdLong())
+                return;
+
+            QUIT_HANDLERS.remove(guild);
+        }
+
+    }
 }
